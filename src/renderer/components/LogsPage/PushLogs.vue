@@ -4,7 +4,7 @@
         :disabled="disabled"
         @click="dialog = true"
     >
-      Push
+      Push {{ calculateTotal }}
       <v-dialog v-model="dialog" persistent max-width="290">
         <v-card>
           <v-card-title class="headline">Push worklogs now?</v-card-title>
@@ -33,6 +33,9 @@
     computed: {
       disabled() {
         return (this.$store.state.Worklogs.logs.length < 1) || !WorklogsService.validateWorklogs();
+      },
+      calculateTotal() {
+        return WorklogsService.calculateTotal();
       }
     },
     methods: {

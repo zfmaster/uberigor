@@ -92,6 +92,16 @@ export const validateWorklogs = function () {
   return store.state.Worklogs.invalid.length < 1;
 };
 
+export const calculateTotal = function () {
+  let worklogs = store.state.Worklogs.logs,
+      total = 0;
+  worklogs.map(function (value, key) {
+    total += value.worklog.timeSpentSeconds;
+  });
+
+  return total > 0 ? HelperFunctions.convertTime(total) : '';
+};
+
 export const validateWorklog = function (worklog) {
   let valid = isValid(worklog);
   if (valid) {
