@@ -1,45 +1,49 @@
-import {ipcRenderer} from 'electron';
 import store from './../store'
+import JiraApiService from './JiraApiService';
+
+const EventEmitter = require('events');
 
 let currentIssuesStartAt = 0,
   currentBoardValue = null;
 
+let eventEmitter = new EventEmitter();
+let jiraApiService = new JiraApiService(eventEmitter);
+
 export const init = function () {
   initListeners();
+  jiraApiService.autoAuth();
+};
 
-  ipcRenderer.on('jira-auth-response', (event, result) => {
+export const initListeners = function () {
+  eventEmitter.on('jira-user-response', (result) => {
+    eventEmitter.emit('app-get-config');
+    jiraApiService.loadBoards(0, []);
+    store.commit('SET_USER', result.response);
+  });
+
+  eventEmitter.on('jira-auth-response', (result) => {
     if (result.status === 'noCredentials' || result.status === 'wrongCredentials') {
       store.commit('SET_LOADING', false);
       store.commit('SET_CREDENTIALS_STATUS', result.status);
     }
   });
 
-  ipcRenderer.send('jira-autoauth')
-};
-
-export const initListeners = function () {
-  ipcRenderer.on('jira-boards-all-response', (event, result) => {
+  eventEmitter.on('jira-boards-all-response', (result) => {
     store.commit('SET_BOARDS', result.boards);
   });
 
-  ipcRenderer.on('jira-user-response', (event, result) => {
-    getUserDashboards();
-    ipcRenderer.send('app-get-config');
-    store.commit('SET_USER', result.response);
-  });
-
-  ipcRenderer.on('jira-boards-all-loaded-response', (event, result) => {
+  eventEmitter.on('jira-boards-all-loaded-response', () => {
     store.commit('SET_BOARDS_LOADING', false);
   });
 
-  ipcRenderer.on('jira-issues-save-worklogs-response', (event, result) => {
+  eventEmitter.on('jira-issues-save-worklogs-response', (result) => {
     console.log(result);
     if (result.error == null) {
       store.commit('REMOVE_WORKLOG', result.value);
     }
   });
 
-  ipcRenderer.on('jira-boards-issues-response', (event, result) => {
+  eventEmitter.on('jira-boards-issues-response', (result) => {
     store.commit('SET_ISSUES_ARE_LOADING', false);
     if (result.response !== null) {
       store.commit('ADD_BOARD_ISSUES', {
@@ -53,16 +57,14 @@ export const initListeners = function () {
   });
 };
 
-export const getMaxResults = function() {
+export const getMaxResults = function () {
   return 20;
 };
 
 export const pushWorklogs = function () {
   let worklogs = store.state.Worklogs.logs;
   if (worklogs.length) {
-    ipcRenderer.send('jira-issues-save-worklogs-request', {
-      worklogs: worklogs
-    })
+    jiraApiService.pushWorklogs(worklogs);
   }
 };
 
@@ -72,12 +74,10 @@ export const loadIssues = function (value = false) {
       currentBoardValue = value;
       currentIssuesStartAt = 0;
       removeIssues();
-    }
-    else {
+    } else {
       return;
     }
-  }
-  else {
+  } else {
     currentIssuesStartAt += getMaxResults()
   }
   getIssues({
@@ -86,29 +86,22 @@ export const loadIssues = function (value = false) {
   });
 };
 
-export const removeIssues = function() {
+export const removeIssues = function () {
   store.commit('SET_BOARD_ISSUES', []);
 };
 
 export const getIssues = function (args) {
   store.commit('SET_ISSUES_ARE_LOADING', true);
   console.log('sendrequest');
-  ipcRenderer.send('jira-boards-issues-request', {
+  jiraApiService.boardIssuesRequest({
     boardId: args.boardId,
     startAt: args.startAt,
     maxResults: getMaxResults()
-  })
+  });
 };
 
 export const authenticate = function (email, token, host) {
   store.commit('SET_CREDENTIALS_STATUS', '');
-  ipcRenderer.send('jira-auth', {
-    email: email,
-    token: token,
-    host: host
-  })
+  jiraApiService.jiraAuth(email, token, host);
 };
 
-export const getUserDashboards = function () {
-  ipcRenderer.send('jira-boards-all-request')
-};
