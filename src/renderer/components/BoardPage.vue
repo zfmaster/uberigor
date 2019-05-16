@@ -23,7 +23,6 @@
     </v-toolbar>
 
     <div
-        v-on:scroll.passive="handleScroll"
         class="scrollable-content"
     >
       <v-list
@@ -191,14 +190,6 @@
         }
         this.$store.commit('START_COMPUTING', index);
 
-      },
-      handleScroll(event) {
-        let elem = event.target;
-        if (elem.scrollTop >= (elem.scrollHeight - elem.offsetHeight - 100)) {
-          if (!this.$store.state.Board.issuesAreLoading && !this.$store.state.Board.allIssuesAreLoaded) {
-            JiraService.loadIssues();
-          }
-        }
       }
     }
   }

@@ -13,6 +13,7 @@ class JiraApiService {
   _jiraToken = '';
   _jiraHost = '';
   _eventEmitter = undefined;
+  _apiRequestTimeout = 50;
 
   constructor(eventEmitter) {
     this._eventEmitter = eventEmitter;
@@ -22,7 +23,6 @@ class JiraApiService {
     console.log(credentialsFile);
     let config = null;
     try {
-      console.log('test2');
       let credentials = fs.readFileSync(credentialsFile, "utf8");
       console.log(credentials);
       if (credentials.length) {
@@ -80,60 +80,89 @@ class JiraApiService {
   };
 
   loadBoards(startAt, boards) {
-    let dashboardClient = this._jira.board,
-      self = this;
+    let self = this;
 
-    dashboardClient.getAllBoards({
-      maxResults: 50,
-      type: 'scrum',
-      startAt: startAt
-    }, function (error, response) {
-      if (error !== null) {
-        console.warn(error);
-        self.loadBoards(event, arg);
-        return false;
-      }
-      boards = boards.concat(response.values);
-      if (response.total > startAt + 50) {
-        startAt += 50;
-        self.loadBoards(startAt, boards);
-      } else {
-        self._eventEmitter.emit('jira-boards-all-response', {error, boards});
-        self._eventEmitter.emit('jira-boards-all-loaded-response', {error, response});
-      }
-    });
+    setTimeout(function () {
+      let dashboardClient = self._jira.board;
+
+      let promise = dashboardClient.getAllBoards({
+        maxResults: 50,
+        type: 'scrum',
+        startAt: startAt
+      });
+      promise.then(
+        result => {
+          boards = boards.concat(result.values);
+          if (result.total > startAt + 50) {
+            startAt += 50;
+            self.loadBoards(startAt, boards);
+          } else {
+            self._eventEmitter.emit('jira-boards-all-response', {boards});
+            self._eventEmitter.emit('jira-boards-all-loaded-response', {result});
+          }
+        },
+        error => {
+          console.warn(error);
+          self.loadBoards(startAt, boards);
+        }
+      )
+    }, self._apiRequestTimeout);
   };
 
   boardIssuesRequest(params) {
     let self = this,
       dashboardClient = self._jira.board;
+
     // If we start loading backlog from beginning it could mean we switched the board, so we request also tasks from current sprint if exists
     if (params.startAt === 0) {
-      dashboardClient.getSprintsForBoard({
+      let promise = dashboardClient.getSprintsForBoard({
         boardId: params.boardId,
         state: 'active'
-      }, function (error, response) {
-        if (response.values.length) {
-          let sprintClient = self._jira.sprint;
-          sprintClient.getSprintIssues({
-            fields: 'issuetype, summary, sprint',
-            maxResults: 1000,
-            jql: 'issuetype not in subtaskIssueTypes()',
-            sprintId: response.values[0].id
-          }, function (error, response) {
-            self._eventEmitter.emit('jira-boards-issues-response', {error, response, isSprint: true})
-          })
-        }
       });
+
+      promise.then(
+        result => {
+          if (result.values.length) {
+            let sprintClient = self._jira.sprint;
+            let promise = sprintClient.getSprintIssues({
+              fields: 'issuetype, summary, sprint',
+              maxResults: 1000,
+              jql: 'issuetype not in subtaskIssueTypes()',
+              sprintId: result.values[0].id
+            });
+
+            promise.then(
+              result => {
+                self._eventEmitter.emit('jira-boards-issues-response', {result, isSprint: true})
+              },
+              error => {
+                self._eventEmitter.emit('jira-boards-issues-response', {error, isSprint: true})
+              }
+            )
+          }
+        }
+      )
     }
-    dashboardClient.getIssuesForBacklog({
-      maxResults: params.maxResults,
-      startAt: params.startAt,
-      boardId: params.boardId,
-      fields: 'issuetype, summary'
-    }, function (error, response) {
-      self._eventEmitter.emit('jira-boards-issues-response', {error, response})
-    });
+
+    setTimeout(function () {
+      let promise = dashboardClient.getIssuesForBacklog({
+        maxResults: params.maxResults,
+        startAt: params.startAt,
+        boardId: params.boardId,
+        fields: 'issuetype, summary',
+        jql: 'issuetype not in subtaskIssueTypes()',
+      });
+
+      promise.then(
+        result => {
+          self._eventEmitter.emit('jira-boards-issues-response', {result})
+        },
+        error => {
+          self._eventEmitter.emit('jira-boards-issues-response', {error})
+        }
+      )
+    }, self._apiRequestTimeout);
+
   }
 
   pushWorklogs(worklogs) {

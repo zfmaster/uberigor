@@ -44,14 +44,17 @@ export const initListeners = function () {
   });
 
   eventEmitter.on('jira-boards-issues-response', (result) => {
-    store.commit('SET_ISSUES_ARE_LOADING', false);
-    if (result.response !== null) {
+    if (result.result !== null) {
       store.commit('ADD_BOARD_ISSUES', {
-        issues: result.response.issues,
+        issues: result.result.issues,
         isSprint: result.isSprint
       });
-      if (!result.isSprint && (store.state.Board.issues.length >= result.response.total)) {
+      if (!result.isSprint && (store.state.Board.issues.length >= result.result.total)) {
         store.commit('SET_ALL_ISSUES_ARE_LOADED', true);
+        store.commit('SET_ISSUES_ARE_LOADING', false);
+      }
+      else {
+        loadIssues();
       }
     }
   });
@@ -92,7 +95,6 @@ export const removeIssues = function () {
 
 export const getIssues = function (args) {
   store.commit('SET_ISSUES_ARE_LOADING', true);
-  console.log('sendrequest');
   jiraApiService.boardIssuesRequest({
     boardId: args.boardId,
     startAt: args.startAt,

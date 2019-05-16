@@ -1,7 +1,5 @@
 import { app, BrowserWindow } from 'electron'
 
-require('./Library/JiraService');
-
 import * as AppService from './Library/AppService';
 AppService.init();
 
