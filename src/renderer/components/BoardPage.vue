@@ -141,6 +141,7 @@
     },
     methods: {
       change: function (value) {
+        this.$store.commit('SET_ISSUES_ARE_LOADING', true);
         JiraService.loadIssues(value);
         AppConfig.setConfig('lastBoard', value);
       },

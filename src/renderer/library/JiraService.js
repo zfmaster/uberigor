@@ -49,19 +49,22 @@ export const initListeners = function () {
         issues: result.result.issues,
         isSprint: result.isSprint
       });
-      if (!result.isSprint && (store.state.Board.issues.length >= result.result.total)) {
-        store.commit('SET_ALL_ISSUES_ARE_LOADED', true);
-        store.commit('SET_ISSUES_ARE_LOADING', false);
-      }
-      else {
-        loadIssues();
+      if (!result.isSprint) {
+        let backlogIssuesLength = store.state.Board.issues.reduce((n, issue) => n + (issue.isSprint !== true), 0);
+        if (backlogIssuesLength >= result.result.total) {
+          store.commit('SET_ALL_ISSUES_ARE_LOADED', true);
+          store.commit('SET_ISSUES_ARE_LOADING', false);
+        }
+        else {
+          loadIssues();
+        }
       }
     }
   });
 };
 
 export const getMaxResults = function () {
-  return 20;
+  return 50;
 };
 
 export const pushWorklogs = function () {
@@ -94,7 +97,6 @@ export const removeIssues = function () {
 };
 
 export const getIssues = function (args) {
-  store.commit('SET_ISSUES_ARE_LOADING', true);
   jiraApiService.boardIssuesRequest({
     boardId: args.boardId,
     startAt: args.startAt,
