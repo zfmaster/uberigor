@@ -23,10 +23,10 @@ export const exportWorklogs = function () {
       // fileName is a string that contains the path and filename created in the save file dialog.
       fs.writeFile(fileName, content, (err) => {
         if (err) {
-          alert("An error ocurred creating the file " + err.message)
+          alert("An error occurred creating the file " + err.message)
         }
 
-        alert("The file has been succesfully saved");
+        alert("The file has been successfully saved");
       });
     });
   }
@@ -46,7 +46,7 @@ export const importWorklogs = function () {
     }
     fs.readFile(fileNames[0], 'utf-8', (err, data) => {
       if(err){
-        alert("An error ocurred reading the file :" + err.message);
+        alert("An error occurred reading the file :" + err.message);
         return;
       }
 
@@ -86,7 +86,7 @@ export const convertMeasurementsToWorklogs = function (args) {
 export const validateWorklogs = function () {
   let worklogs = store.state.Worklogs.logs;
   worklogs.map(function (value, key) {
-    validateWorklog(value);
+    validateWorklog(value, key);
   });
 
   return store.state.Worklogs.invalid.length < 1;
@@ -102,13 +102,13 @@ export const calculateTotal = function () {
   return total > 0 ? HelperFunctions.convertTime(total) : '';
 };
 
-export const validateWorklog = function (worklog) {
+export const validateWorklog = function (worklog, key) {
   let valid = isValid(worklog);
   if (valid) {
-    store.commit('SET_WORKLOG_VALID', worklog.issueKey);
+    store.commit('REMOVE_WORKLOG_INVALID', worklog.internalId);
   }
   else {
-    store.commit('SET_WORKLOG_INVALID', worklog.issueKey);
+    store.commit('ADD_WORKLOG_INVALID', worklog.internalId);
   }
 };
 

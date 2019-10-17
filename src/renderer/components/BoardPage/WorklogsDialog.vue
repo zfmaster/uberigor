@@ -1,12 +1,10 @@
 <template>
   <v-dialog v-model="dialog" persistent max-width="290">
-    <v-btn
-        flat
-        slot="activator"
-        dark
-    >Create Worklogs
-      <v-icon right dark>av_timer</v-icon>
-    </v-btn>
+    <template v-slot:activator="{ on }">
+      <v-btn flat dark v-on="on">Create Worklogs
+        <v-icon right dark>av_timer</v-icon>
+      </v-btn>
+    </template>
     <v-card
         dark
     >
@@ -42,7 +40,9 @@
                 prepend-icon="event"
                 readonly
             ></v-text-field>
-            <v-date-picker v-model="date" no-title @input="worklogsMenu = false"></v-date-picker>
+            <div v-if="worklogsMenu">
+              <v-date-picker v-model="date" no-title @input="worklogsMenu = false"></v-date-picker>
+            </div>
           </v-menu>
         </v-form>
       </v-card-text>
@@ -51,12 +51,14 @@
         <v-btn
             color="darken-1"
             @click.native="dialog = false"
-        >Cancel</v-btn>
+        >Cancel
+        </v-btn>
         <v-btn
             color="green darken-1"
             :disabled="!valid"
             @click="createWorklogs"
-        >Proceed</v-btn>
+        >Proceed
+        </v-btn>
       </v-card-actions>
     </v-card>
   </v-dialog>
@@ -69,7 +71,7 @@
 
   export default {
     name: 'worklogs-dialog',
-    data () {
+    data() {
       return {
         valid: true,
         dialog: false,
@@ -84,17 +86,17 @@
         dateRules: [
           v => !!v || 'Date is required'
         ],
-        worklogsMenu: true,
+        worklogsMenu: false,
       }
     },
     methods: {
-      createWorklogs: function() {
+      createWorklogs: function () {
         if (this.$refs.form.validate()) {
           WorklogsService.convertMeasurementsToWorklogs({
             date: this.date,
             comment: this.hashtag
           });
-          router.push({ path: 'logs' });
+          router.push({path: 'logs'});
           this.dialog = false;
         }
       },

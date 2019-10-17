@@ -167,7 +167,7 @@ class JiraApiService {
 
   pushWorklogs(worklogs) {
     let self = this,
-      issueClient = jira.issue;
+      issueClient = self._jira.issue;
     worklogs.map(function (value, key) {
       value.worklog.started = dateFormat(value.worklog.started, "UTC:yyyy-mm-dd'T'HH:MM:ss.000+0000");
       issueClient.addWorkLog(value, function (error, response) {
