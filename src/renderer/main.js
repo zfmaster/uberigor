@@ -28,8 +28,11 @@ new Vue({
   template: '<App/>'
 }).$mount('#app');
 
-JiraService.init();
-AppConfig.init();
+const EventEmitter = require('events');
+let eventEmitter = new EventEmitter();
+
+JiraService.init(eventEmitter);
+AppConfig.init(eventEmitter);
 
 Mousetrap.bind(['command+f', 'ctrl+f'], function() {
   console.log('search');

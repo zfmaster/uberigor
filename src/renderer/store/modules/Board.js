@@ -18,16 +18,15 @@ const mutations = {
     state.boardsLoading = value;
   },
   ADD_BOARD_ISSUES(state, args) {
-    if (args.isSprint) {
-      let issues = args.issues.map(function (value) {
-        value.isSprint = true;
-        return value;
-      });
-      state.issues = issues.concat(state.issues);
-    }
-    else {
-      state.issues = state.issues.concat(args.issues);
-    }
+    let issues = state.issues.concat(args.issues);
+    issues.sort(function(a, b) {
+      if (a.fields.sprint == null) {
+        return (b.fields.sprint == null) ? a.rank - b.rank : 1;
+      }
+      return (b.fields.sprint == null) ? -1 : (a.fields.sprint.id === b.fields.sprint.id) ? a.rank - b.rank : a.fields.sprint.id - b.fields.sprint.id;
+    });
+
+    state.issues = issues;
   },
   SET_BOARD_ISSUES(state, issues) {
     state.issues = issues;

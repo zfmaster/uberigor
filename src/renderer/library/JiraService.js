@@ -1,15 +1,16 @@
 import store from './../store'
 import JiraApiService from './JiraApiService';
 
-const EventEmitter = require('events');
-
 let currentIssuesStartAt = 0,
   currentBoardValue = null;
 
-let eventEmitter = new EventEmitter();
-let jiraApiService = new JiraApiService(eventEmitter);
+let jiraApiService,
+  eventEmitter;
 
-export const init = function () {
+export const init = function (emitter) {
+  eventEmitter = emitter;
+  jiraApiService = new JiraApiService(eventEmitter);
+
   initListeners();
   jiraApiService.autoAuth();
 };
@@ -45,20 +46,29 @@ export const initListeners = function () {
 
   eventEmitter.on('jira-boards-issues-response', (result) => {
     if (result.result !== null) {
+      result.result.issues.map(function (issue, index) {
+        issue.rank = index + result.rankingRange;
+      });
+
       store.commit('ADD_BOARD_ISSUES', {
         issues: result.result.issues,
-        isSprint: result.isSprint
       });
+
       if (!result.isSprint) {
-        let backlogIssuesLength = store.state.Board.issues.reduce((n, issue) => n + (issue.isSprint !== true), 0);
+        let backlogIssuesLength = store.state.Board.issues.reduce((n, issue) => n + (issue.fields.sprint == null), 0);
         if (backlogIssuesLength >= result.result.total) {
           store.commit('SET_ALL_ISSUES_ARE_LOADED', true);
           store.commit('SET_ISSUES_ARE_LOADING', false);
-        }
-        else {
+        } else {
           loadIssues();
         }
       }
+    }
+  });
+
+  eventEmitter.on('app-get-config-response', (config) => {
+    if (config.lastBoard !== undefined && config.lastBoard !== null) {
+      loadIssues(config.lastBoard);
     }
   });
 };
@@ -108,4 +118,5 @@ export const authenticate = function (email, token, host) {
   store.commit('SET_CREDENTIALS_STATUS', '');
   jiraApiService.jiraAuth(email, token, host);
 };
+
 

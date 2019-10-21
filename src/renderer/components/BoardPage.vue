@@ -29,6 +29,11 @@
           two-line
       >
         <template v-for="(item, index) in items">
+          <v-subheader
+              v-if="drawSprintHeader(item, index)"
+          >
+            {{ sprintHeader(item) }}
+          </v-subheader>
           <v-list-tile
               :key="item.id"
               avatar
@@ -92,6 +97,7 @@
           </v-list-tile>
 
           <v-divider></v-divider>
+
         </template>
         <div
             class="text-xs-center"
@@ -145,8 +151,23 @@
         JiraService.loadIssues(value);
         AppConfig.setConfig('lastBoard', value);
       },
-      getItemColor: function(item) {
-        return item.isSprint ? 'grey darken-4' : '';
+      getItemColor: function (item) {
+        return item.fields.sprint ? 'grey darken-4' : '';
+      },
+      drawSprintHeader: function (item, index) {
+        if (index === 0) {
+          return true;
+        }
+        if (item.fields.sprint === this.$store.state.Board.issues[index - 1].fields.sprint) {
+          return false;
+        }
+        if (item.fields.sprint !== null && this.$store.state.Board.issues[index - 1].fields.sprint !== null) {
+          return item.fields.sprint.id !== this.$store.state.Board.issues[index - 1].fields.sprint.id;
+        }
+        return true;
+      },
+      sprintHeader: function (item) {
+        return item.fields.sprint !== null ? item.fields.sprint.name : 'Backlog';
       },
       issueTime: function (index) {
         if (this.$store.state.Board.times[index] !== undefined) {

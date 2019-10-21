@@ -111,34 +111,41 @@ class JiraApiService {
 
   boardIssuesRequest(params) {
     let self = this,
-      dashboardClient = self._jira.board;
+      dashboardClient = self._jira.board,
+      sprintMaxResults = 1000;
 
     // If we start loading backlog from beginning it could mean we switched the board, so we request also tasks from current sprint if exists
     if (params.startAt === 0) {
-      let promise = dashboardClient.getSprintsForBoard({
+      let promise = dashboardClient.getAllSprints({
         boardId: params.boardId,
-        state: 'active'
+        state: 'future,active'
       });
 
       promise.then(
         result => {
           if (result.values.length) {
-            let sprintClient = self._jira.sprint;
-            let promise = sprintClient.getSprintIssues({
-              fields: 'issuetype, summary, sprint',
-              maxResults: 1000,
-              jql: 'issuetype not in subtaskIssueTypes()',
-              sprintId: result.values[0].id
-            });
+            result.values.forEach(function(sprint, index) {
+              let sprintClient = self._jira.sprint;
+              let promise = sprintClient.getSprintIssues({
+                fields: 'issuetype, summary, sprint',
+                maxResults: sprintMaxResults,
+                jql: 'issuetype not in subtaskIssueTypes()',
+                sprintId: sprint.id
+              });
 
-            promise.then(
-              result => {
-                self._eventEmitter.emit('jira-boards-issues-response', {result, isSprint: true})
-              },
-              error => {
-                self._eventEmitter.emit('jira-boards-issues-response', {error, isSprint: true})
-              }
-            )
+              promise.then(
+                result => {
+                  self._eventEmitter.emit('jira-boards-issues-response', {
+                    result,
+                    rankingRange: index * sprintMaxResults,
+                    isSprint: true
+                  })
+                },
+                error => {
+                  self._eventEmitter.emit('jira-boards-issues-response', {error})
+                }
+              )
+            });
           }
         }
       )
@@ -149,13 +156,17 @@ class JiraApiService {
         maxResults: params.maxResults,
         startAt: params.startAt,
         boardId: params.boardId,
-        fields: 'issuetype, summary',
+        fields: ['issuetype', 'summary', 'sprint'],
         jql: 'issuetype not in subtaskIssueTypes()',
       });
+      let rankingRange = 1000000 + params.startAt * 2;
 
       promise.then(
         result => {
-          self._eventEmitter.emit('jira-boards-issues-response', {result})
+          self._eventEmitter.emit('jira-boards-issues-response', {
+            result,
+            rankingRange: rankingRange
+          })
         },
         error => {
           self._eventEmitter.emit('jira-boards-issues-response', {error})
@@ -168,16 +179,18 @@ class JiraApiService {
   pushWorklogs(worklogs) {
     let self = this,
       issueClient = self._jira.issue;
-    worklogs.map(function (value, key) {
-      value.worklog.started = dateFormat(value.worklog.started, "UTC:yyyy-mm-dd'T'HH:MM:ss.000+0000");
-      issueClient.addWorkLog(value, function (error, response) {
+
+    worklogs.forEach(function (value) {
+      let structure = JSON.parse(JSON.stringify(value));
+      structure.worklog.started = dateFormat(structure.worklog.started, "UTC:yyyy-mm-dd'T'HH:MM:ss.000+0000");
+
+      issueClient.addWorkLog(structure, function (error, response) {
         self._eventEmitter.emit('jira-issues-save-worklogs-response', {value, error, response})
       });
     });
   }
 
   static storeCredentials(arg = false) {
-    console.log('store creds', arg);
     let data = '';
     if (arg) {
       data = JSON.stringify({

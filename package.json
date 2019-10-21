@@ -55,7 +55,7 @@
     "dateformat": "^3.0.3",
     "electron-oauth-helper": "^2.0.3",
     "electron-oauth2": "^3.0.0",
-    "jira-connector": "^2.8.0",
+    "jira-connector": "^2.16.0",
     "material-design-icons-iconfont": "^3.0.3",
     "mousetrap": "^1.6.3",
     "tough-cookie-filestore": "^0.0.1",
