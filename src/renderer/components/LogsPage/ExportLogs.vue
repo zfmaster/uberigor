@@ -1,5 +1,5 @@
 <template>
-  <v-tooltip top>
+  <v-tooltip top  :disabled="!iconVisible">
     <template v-slot:activator="{ on }">
       <v-btn flat
              :disabled="disabled"
