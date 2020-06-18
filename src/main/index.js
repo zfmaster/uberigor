@@ -1,7 +1,7 @@
 import { app, BrowserWindow } from 'electron'
 
-import * as AppService from './Library/AppService';
-AppService.init();
+// import * as AppService from './Library/AppService';
+// AppService.init();
 
 /**
  * Set `__static` path to static files in production
