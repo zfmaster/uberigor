@@ -51,7 +51,7 @@
     }
   },
   "dependencies": {
-    "axios": "^0.18.1",
+    "axios": "^0.21.1",
     "dateformat": "^3.0.3",
     "electron-oauth-helper": "^2.0.3",
     "electron-oauth2": "^3.0.0",
